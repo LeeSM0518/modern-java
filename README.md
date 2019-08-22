@@ -7,9 +7,9 @@
 # 목차
 
 * **PART 01. 기초**
-  * [CHAPTER 01. 자바 8, 9, 10, 11: 무슨 일이 일어나고 있는가?](https://github.com/LeeSM0518/TIL/tree/master/Java-in-Action/src/chapter01)
-  * [CHAPTER 02. 동작 파라미터화 코드 전달하기](https://github.com/LeeSM0518/TIL/tree/master/Java-in-Action/src/chapter02)
-  * CHAPTER 03. 람다 표현식
+  - [CHAPTER 01. 자바 8, 9, 10, 11: 무슨 일이 일어나고 있는가?](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter01)
+  - [CHAPTER 02. 동작 파라미터화 코드 전달하기](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter02)
+  - [CHAPTER 03. 람다 표현식](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter03)
 * **PART 02. 함수형 데이터 처리** 
   * CHAPTER 04. 스트림 소개
   * CHAPTER 05. 스트림 활용
