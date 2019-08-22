@@ -250,8 +250,8 @@ s.forEach(System.out::println));
 
   ```java
   List<String> names = menu.stream()
-    											 .map(Dish::getName)	// map 메서드 사용
-    											 .collect(toList());	// 파이프라인 실행
+    .map(Dish::getName)	// map 메서드 사용
+    .collect(toList());	// 파이프라인 실행
   ```
 
 <br/>
@@ -264,10 +264,10 @@ s.forEach(System.out::println));
 
   ```java
   List<String> names = menu.stream()	// 요리 리스트에서 스트림 얻기
-    									     .filter(dish -> dish.getCalories() > 300)	// 중간 연산
-    									     .map(Dish::getName)	// 중간 연산
-    									     .limit(3)						// 중간 연산
-    									     .collect(toList());	// 스트림을 리스트로 변환
+    .filter(dish -> dish.getCalories() > 300)	// 중간 연산
+    .map(Dish::getName)	// 중간 연산
+    .limit(3)						// 중간 연산
+    .collect(toList());	// 스트림을 리스트로 변환
   ```
 
   * filter, map, limit는 서로 연결되어 파이프라인 형성
