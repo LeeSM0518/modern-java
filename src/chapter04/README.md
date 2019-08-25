@@ -283,3 +283,108 @@ s.forEach(System.out::println));
 
 ## 4.4.1. 중간 연산
 
+중간 연산의 중요한 특징은 단말 연산을 스트림 파이프라인에 실행하기 전까지는 아무 연산도 수행하지 않는다는 것, **즉 게으르다는 것이다.** 중간 연산을 합친 다음에 합쳐진 중간 연산을 최종 연산으로 한 번에 처리하기 때문이다.
+
+* **예시**
+
+  ```java
+  List<String> names =
+    menu.stream()
+    .filter(dish -> {
+      System.out.println("filtering: " + dish.getName());
+      return dish.getCalories() > 300;
+    })	// 필터링한 요리명을 출력
+    .map(dish -> {
+      System.out.println("mapping: " + dish.getName());
+      return dish.getName();
+    })	// 추출한 요리명을 출력
+    .limit(3)
+    .collect(toList());
+  
+  System.out.println(names);		// 리스트 출력
+  ```
+
+* **실행 결과**
+
+  ```
+  filtering: pork
+  mapping: pork
+  filtering: beef
+  mapping: beef
+  filtering: chicken
+  mapping: chicken
+  [pork, beef, chicken]
+  ```
+
+</br>
+
+## 4.4.2. 최종 연산
+
+최종 연산은 스트림 **파이프라인에서 결과를 도출한다.** 보통 최종 연산에 의해 List, Integer, void 등 스트림 이외의 결과가 반환된다.
+
+* **예시**
+
+  ```java
+  menu.stream().forEach(System.out::println);
+  ```
+
+* **실행 결과**
+
+  ```
+  pork
+  beef
+  chicken
+  french fries
+  rice
+  season
+  pizza
+  prawns
+  salmon
+  ```
+
+<br/>
+
+## 4.4.3. 스트림 이용하기
+
+**스트림 이용 과정**
+
+* 질의를 수행할 (컬렉션 같은) 데이터 소스
+* 스트림 파이프라인을 구성할 중간 연산 연결
+* 스트림 파이프라인을 실행하고 결과를 만들 최종 연산
+
+<br/>
+
+스트림 파이프라인의 개념은 **빌더 패턴(builder pattern)과** 비슷하다. 빌더 패턴에서는 호출을 연결해서 설정을 만든다(스트림에서 중간 연산을 연결하는 것과 같다). 그리고 준비된 설정에 build 메서드를 호출한다(스트림에서는 최종 연산에 해당함).
+
+<br/>
+
+**중간 연산**
+
+| 연산     | 반환 형식  | 연산의 인수     | 함수 디스크립터 |
+| -------- | ---------- | --------------- | --------------- |
+| filter   | Stream\<T> | Predicate\<T>   | T -> boolean    |
+| map      | Stream\<R> | Function\<T, R> | T -> R          |
+| limit    | Stream\<T> | -               | -               |
+| sorted   | Stream\<T> | Comparator\<T>  | (T, T) -> int   |
+| distinct | Stream\<T> | -               | -               |
+
+<br/>
+
+**최종 연산**
+
+| 연산    | 반환 형식 | 목적                                                         |
+| ------- | --------- | ------------------------------------------------------------ |
+| forEach | void      | 스트림의 각 요소를 소비하면서 람다를 적용한다.               |
+| count   | long      | 스트림의 요소 개수를 반환한다.                               |
+| collect | generic   | 스트림을 리듀스해서 리스트, 맵, 정수 형식의 컬렉션을 만든다. |
+
+<br/>
+
+# 4.5. 마치며
+
+* 스트림은 소스에서 추출된 연속 요소로, **데이터 처리 연산을 지원한다.**
+* 스트림은 **내부 반복을** 지원한다. 내부 반복은 filter, map, sorted 등의 연산으로 반복을 추상화한다.
+* 스트림에는 **중간 연산과 최종연산이** 있다.
+* **중간 연산은** filter 와 map 처럼 스트림을 반환하면서 **다른 연산과 연결되는 연산이다.** 중간 연산을 이용해서 파이프라인을 구성할 수 있지만, 중간 연산으로는 **어떤 결과도 생성할 수 없다.**
+* forEach 나 count 처럼 스트림 파이프라인을 처리해서 **스트림이 아닌 결과를 반환하는 연산을 최종 연산이라고 한다.**
+* 스트림의 요소는 요청할 때 **게으르게 계산된다.**
