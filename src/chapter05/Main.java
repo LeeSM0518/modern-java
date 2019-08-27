@@ -3,6 +3,9 @@ package chapter05;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -111,7 +114,65 @@ public class Main {
     Optional<Integer> min = numbers.stream().reduce(Integer::min);
     System.out.println(min);
     Optional<Integer> max = numbers.stream().reduce(Integer::max);
-    sout
+
+    int calories = menu.stream()
+        .map(Dish::getCalories)
+        .reduce(0, Integer::sum);
+    System.out.println(calories);
+
+    int calories2 = menu.stream()
+        .mapToInt(Dish::getCalories)
+        .sum();
+    System.out.println(calories2);
+
+    IntStream intStream = menu.stream().mapToInt(Dish::getCalories);
+    Stream<Integer> stream = intStream.boxed();
+
+    OptionalInt maxCalories = menu.stream()
+        .mapToInt(Dish::getCalories)
+        .max();
+    System.out.println();
+
+    IntStream evenNumbers = IntStream.rangeClosed(1, 100)
+        .filter(n -> n % 2 == 0);
+    System.out.println(evenNumbers.count());
+
+    Stream<int[]> pythagoreanTriples =
+        IntStream.rangeClosed(1, 100).boxed()
+            .flatMap(a ->
+                IntStream.rangeClosed(a, 100)
+                    .filter(b -> Math.sqrt(a * a + b * b) % 1 == 0)
+                    .mapToObj(b ->
+                        new int[]{a, b, (int) Math.sqrt(a * a + b * b)}));
+
+    pythagoreanTriples.limit(5)
+        .forEach(t ->
+            System.out.println(t[0] + ", " + t[1] + ", " + t[2]));
+
+    Stream<double[]> pythagoreanTriples2 =
+        IntStream.rangeClosed(1, 100).boxed()
+            .flatMap(a -> IntStream.rangeClosed(a, 100)
+                .mapToObj(
+                    b -> new double[]{a, b, Math.sqrt(a * a + b * b)})
+                .filter(t -> t[2] % 1 == 0));
+
+    Stream<String> stringStream = Stream.of("Modern ", "Java ", "In ", "Action");
+    stringStream.map(String::toUpperCase).forEach(System.out::println);
+
+    Stream.iterate(0, n -> n + 2)
+        .limit(3)
+        .forEach(System.out::println);
+
+    IntStream.iterate(0, n -> n < 100, n -> n + 4)
+        .forEach(System.out::println);
+
+    IntStream.iterate(0, n -> n + 4)
+        .takeWhile(n -> n < 100)
+        .forEach(System.out::println);
+
+    Stream.generate(Math::random)
+        .limit(5)
+        .forEach(System.out::println);
   }
 
 }
