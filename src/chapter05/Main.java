@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -173,6 +174,21 @@ public class Main {
     Stream.generate(Math::random)
         .limit(5)
         .forEach(System.out::println);
+
+    IntSupplier fib = new IntSupplier() {
+      private int previous = 0;
+      private int current = 1;
+      @Override
+      public int getAsInt() {
+        int oldPrevious = this.previous;
+        int nextValue = this.previous + this.current;
+        this.previous = this.current;
+        this.current = nextValue;
+        return oldPrevious;
+      }
+    };
+
+    IntStream.generate(fib).limit(10).forEach(System.out::println);
   }
 
 }

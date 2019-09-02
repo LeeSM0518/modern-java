@@ -1065,4 +1065,52 @@ iterate와 달리 generate는 생산된 각 값을 연속적으로 계산하지 
   0.9334720065276012
   ```
 
+  > Math.random 은 임의의 새로운 값을 생성하는 정적 메서드다. 이번에도 명시적으로 limit 메서드를 이용해서 스트림의 크기를 한정했다. **limit가 없다면 스트림은 언바운드 상태가 된다.**
+
 <br/>
+
+**IntStream을** 이용하면 박식 연산 문제를 피할 수 있다. IntStream의 generate 메서드는 Supplier\<T> 대신에 IntSupplier를 인수로 받는다.
+
+* **무한 스트림을 생성하는 코드**
+
+  ```java
+  IntStream ones = IntStream.generate(() -> 1);
+  ```
+
+  > IntSupplier 인터페이스에 정의된 getAsInt를 구현하는 객체를 명시적으로 전달할 수도 있다.
+
+* **피보나치 요소를 반환하는 코드**
+
+  ```java
+  IntSupplier fib = new IntSupplier() {
+    private int previous = 0;
+    private int current = 1;
+    @Override
+    public int getAsInt() {
+      int oldPrevious = this.previous;
+      int nextValue = this.previous + this.current;
+      this.previous = this.current;
+      this.current = nextValue;
+      return oldPrevious;
+    }
+  };
+  
+  IntStream.generate(fib).limit(10).forEach(System.out::println);
+  ```
+
+  > fib 객체는 **가변(mutable)** 상태 객체다.
+
+<br/>
+
+# 5.9. 마치며
+
+* **filter, distinct, takeWhile, dropWhile, skip, limit** 메서드로 스트림을 필터링하거나 자를 수 있다.
+* 소스가 정렬되어 있다는 사실을 알고 있을 때 **takeWhile 과 dropWhile** 메서드를 효과적으로 사용할 수 있다.
+
+- **map, flatMap** 메서드로 스트림의 요소를 추출하거나 변환할 수 있다.
+- **findFirst, findAny** 메서드로 스트림의 요소를 검색할 수 있다. **allMatch, noneMatch, anyMatch** 메서드를 이용해서 주어진 프레디케이트와 일치하는 요소를 스트림에서 검색할 수 있다.
+- 이들 메서드는 **쇼트 서킷(short circuit)** , 즉 결과를 찾는 즉시 반환하며, 전체 스트림을 처리하지 않는다.
+- **reduce** 메서드로 스트림의 모든 요소를 반복 조합하며 값을 도출할 수 있다. 예를 들어 reduce로 스트림의 최댓값이나 모든 요소의 합계를 계산할 수 있다.
+- **filter, map** 등은 상태를 저장하지 않는 **상태 없는 연산(stateless operation)** 이다. reduce 연산은 값을 계산하는데 필요한 상태를 저장한다. **sorted, distinct** 등의 메서드는 새로운 스트림을 반환하기에 앞서 스트림의 모든 요소를 버퍼에 저장해야 한다. 이런 메서드를 **상태 있는 연산(stateful operation)** 이라고 부른다.
+- **IntStream, DoubleStream, LongStream** 은 기본형 특화 스트림이다. 이들 연산은 각각의 기본형에 맞게 특화되어 있다.
+- 무한한 개수의 요소를 가진 스트림을 **무한 스트림** 이라 한다.
