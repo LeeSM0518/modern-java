@@ -11,8 +11,8 @@
   - [CHAPTER 02. 동작 파라미터화 코드 전달하기](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter02)
   - [CHAPTER 03. 람다 표현식](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter03)
 * **PART 02. 함수형 데이터 처리** 
-  * CHAPTER 04. 스트림 소개
-  * CHAPTER 05. 스트림 활용
+  * [CHAPTER 04. 스트림 소개](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter04)
+  * [CHAPTER 05. 스트림 활용](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter05)
   * CHAPTER 06. 스트림으로 데이터 수집
   * CHAPTER 07. 병렬 데이터 처리와 성능
 * **PART 03. 스트림과 람다를 이용한 효과적 프로그래밍**
