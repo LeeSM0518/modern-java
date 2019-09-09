@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
@@ -39,8 +40,7 @@ public class Main {
         .collect(toList());
     System.out.println(cityList);
 
-    Set<String> cities =
-        transactions.stream()
+    Set<String> cities = transactions.stream()
         .map(transaction -> transaction.getTrader().getCity())
         .collect(Collectors.toSet());
     System.out.println(cities);
@@ -88,6 +88,9 @@ public class Main {
     Optional<Transaction> smallestTransaction2 = transactions.stream()
         .min(comparing(Transaction::getValue));
     System.out.println(smallestTransaction2);
+
+    int a = IntStream.range(1,2).sum();
+    System.out.println(a);
   }
 
 }

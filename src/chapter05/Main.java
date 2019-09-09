@@ -1,5 +1,8 @@
 package chapter05;
 
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -178,6 +181,7 @@ public class Main {
     IntSupplier fib = new IntSupplier() {
       private int previous = 0;
       private int current = 1;
+
       @Override
       public int getAsInt() {
         int oldPrevious = this.previous;
@@ -189,6 +193,32 @@ public class Main {
     };
 
     IntStream.generate(fib).limit(10).forEach(System.out::println);
+
+    long test = 0;
+    try (Stream<String> lines = Files.lines(Paths.get("resources/data.txt"), Charset.defaultCharset())) {
+      test = lines.flatMap(line -> Arrays.stream(line.split(" ")))
+          .distinct()
+          .count();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+
+    System.out.println(test);
+
+    List<Integer> arr = List.of(1, 2, 3, 4, 5);
+    arr.stream()
+        .map(x -> x * x)
+        .forEach(System.out::println);
+
+    List<Integer> arr1 = List.of(1, 2, 3);
+    List<Integer> arr2 = List.of(3, 4);
+    arr1.stream()
+        .flatMap(i -> arr2.stream()
+            .map(j -> new int[]{i, j}))
+        .filter(intArr -> intArr[0] + intArr[1] == 3)
+        .forEach(x -> {
+          System.out.println(x[0] + ", " + x[1]);
+        });
   }
 
 }
