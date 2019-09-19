@@ -1,6 +1,6 @@
 # 6. 스트림으로 데이터 수집
 
-스트림은 중간 연산과 최종 연산으로 구분할 수 있다. 중간 연산은 스트림 파이프라인을 구성하며, 스트림의 요소를 **소비(consum)하지** 않는다. 반면 최종 연산은 스트림의 요소를 소비해서 최종 결과를 도출한다.
+스트림은 중간 연산과 최종 연산으로 구분할 수 있다. **중간 연산은 스트림 파이프라인을 구성하며, 스트림의 요소를 소비(consum)하지 않는다. 반면 최종 연산은 스트림의 요소를 소비해서 최종 결과를 도출한다.**
 
 스트림의 최종 연산 **collect는 다양한 요소 누적 방식을 인수로 받아서 스트림을 최종 결과로 도출하는** 리듀싱 연산을 수행할 수 있다.
 
@@ -220,9 +220,9 @@ reducing 컬렉터를 사용한 이전 예제에서 람다 표현식 대신 Inte
 * **예시) 칼로리 합계 연산**
 
   ```java
-  int totalCalories = menu.stream().collect(reducing(0,                 // 초기값
-                                                    Dish::getCalories,  // 변환 함수
-                                                    Integer::sum));     // 합계 함수
+  int totalCalories = menu.stream().collect(reducing(0,             // 초기값
+                                                Dish::getCalories,  // 변환 함수
+                                                Integer::sum));     // 합계 함수
   ```
 
   * 누적자를 초깃값으로 초기화하고, 합계 함수를 이용해서 각 요소에 변환 함수를 적용한 결과 숫자를 반복적으로 조합한다.
@@ -304,4 +304,396 @@ reducing 컬렉터를 사용한 이전 예제에서 람다 표현식 대신 Inte
 <br>
 
 ## 6.3.1. 그룹화된 요소 조작
+
+요소를 그룹화한 다음에 각 결과 그룹의 요소를 조작하는 연산이 필요하다.
+
+* **예시) 500 칼로리가 넘는 요리를 필터**
+
+  ```java
+  Map<Type, List<Dish>> caloricDishesByType =
+    menu.stream().filter(dish -> dish.getCalories() > 500)
+    .collect(groupingBy(Dish::getType));
+  ```
+
+  실행 결과
+
+  ```
+  {OTHER=[french fries, pizza], MEAT=[pork, beef]}
+  ```
+
+  <br>
+
+위처럼 코드를 작성하면 필터에 만족하는 요리만 맵으로 만들어져서 다른 종류의 요리들은 키 자체가 저장이 되지 않는다. 하지만  **groupingBy 팩토리 메서드를** 오버로드해 이 문제를 해결할 수 있다.
+
+<br>
+
+* **예시) groupingBy 오버로드**
+
+  ```java
+  Map<Type, List<Dish>> caloricDishesByType2 =
+    menu.stream()
+    .collect(groupingBy(Dish::getType,
+                        filtering(dish -> dish.getCalories() > 500, toList())));
+  ```
+
+  실행 결과
+
+  ```
+  {FISH=[], OTHER=[french fries, pizza], MEAT=[pork, beef]}
+  ```
+
+  * **filtering 메소드는** Collectors 클래스의 또 다른 정적 팩토리 메서드로 프레디케이트를 인수로 받는다. 이 프레디케이트로 **각 그룹의 요소와 필터링 된 요소를 재그룹화 한다.**
+
+<br>
+
+그룹화된 항목을 조작하는 다른 유용한 기능 중 또 **다른 하나로 맵핑 함수를 이용해 요소를 변환하는 작업이 있다.** **mapping 메서드를** 사용하면 그룹의 각 요리를 관련 이름 목록으로 변환할 수 있다.
+
+<br>
+
+* **예시) mapping 메서드를 이용**
+
+  ```java
+  Map<Type, List<String>> dishNamesByType =
+    menu.stream()
+    .collect(groupingBy(Dish::getType, mapping(Dish::getName, toList())));
+  ```
+
+  실행 결과
+
+  ```
+  {FISH=[prawns, salmon], OTHER=[french fries, rice, season, pizza], MEAT=[pork, beef, chicken]}
+  ```
+
+  * 맵의 각 그룹은 요리가 아니라 문자열 리스트다.
+
+<br>
+
+groupingBy와 연계해 세 번째 컬렉터를 사용해서 일반 맵이 아닌 **flatMap 변환을** 수행할 수 있다. 다음처럼 태그 목록을 가진 각 요리로 구성된 맵이 있다고 가정하자.
+
+```java
+{FISH=salmon, OTHER=pizza, MEAT=pork}Map<String, List<String>> dishTags = new HashMap<>();
+dishTags.put("pork", asList("greasy,", "salty"));
+dishTags.put("beef", asList("salty", "roasted"));
+dishTags.put("chicken", asList("fried", "crisp"));
+dishTags.put("french fries", asList("greasy", "fried"));
+dishTags.put("rice", asList("light", "natural"));
+dishTags.put("season fruit", asList("fresh", "natural"));
+dishTags.put("pizza", asList("tasty", "salty"));
+dishTags.put("prawns", asList("tasty", "roasted"));
+dishTags.put("salmon", asList("delicious", "fresh"));
+```
+
+<br>
+
+- **예제) flatMapping 컬렉터를 이용하면 각 형식의 요리의 태그를 간편하게 추출할 수 있다.**
+
+  ```java
+  Map<Type, Set<String>> dishNamesByType2 =
+    menu.stream()
+    .collect(groupingBy(Dish::getType,
+                        flatMapping(dish -> dishTags.get(dish.getName()).stream(), toSet())));
+  ```
+
+  실행 결과
+
+  ```
+  {FISH=[roasted, tasty, fresh, delicious], OTHER=[salty, greasy, natural, light, tasty, fresh, fried], MEAT=[salty, greasy,, roasted, fried, crisp]}
+  ```
+
+  - 두 수준의 리스트를 한 수준으로 평면화하려면 **flatMap을** 수행해야 한다.
+  - 각 그룹에 수행한 flatMapping 연산 결과를 수집해서 리스트가 아니라 **집합으로 그룹화해 중복 태그를 제거한다.**
+
+<br>
+
+## 6.3.2. 다수준 그룹화
+
+두 인수를 받는 팩토리 메서드 **Collectors.groupingBy** 를 이용해서 항목을 다수준으로 그룹화할 수 있다.
+
+**Collectors.groupingBy는** 일반적인 분류 함수와 컬렉터를 인수로 받는다. 즉, 바깥쪽 groupingBy 메서드에 스트림의 항목을 분류할 두 번재 기준을 정의하는 **내부 groupingBy를 전달해서 두 수준으로 스트림의 항목을 그룹화할 수 있다.**
+
+<br>
+
+- **예제) 다수준 그룹화**
+
+  ```java
+  Map<Type, Map<CaloricLevel, List<Dish>>> dishesByTypeCaloricLevel =
+    menu.stream().collect(
+    groupingBy(Dish::getType,
+               groupingBy(dish -> {
+                 if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+                 else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+                 else return CaloricLevel.FAT;
+               })
+         )
+  );
+  ```
+
+  출력 결과
+
+  ```
+  {FISH={DIET=[prawns], NORMAL=[salmon]}, 
+    OTHER={DIET=[rice, season], NORMAL=[french fries, pizza]},  
+    MEAT={DIET=[chicken], FAT=[pork], NORMAL=[beef]}}
+  ```
+
+  - 두 수준의 맵은 첫 번째 키와 두 번째 키의 기준에 부합하는 요소 리스트를 값(salmon, pizza 등)으로 갖는다.
+  - 다수준 그룹화 연산은 다양한 수준으로 확장할 수 있다.
+  - **n 수준 그룹화의 결과는 n 수준 맵이 된다.**
+
+<br>
+
+## 6.3.3. 서브그룹으로 데이터 수집
+
+이전 예제에서는 groupingBy 컬렉터를 외부 컬렉터로 전달해서 요리의 수를 종류별로 계산했다. 
+
+다수준 그룹화 연산을 구현하는 방식은 두 번째 인수로 counting 컬렉터를 전달해서 메뉴에서 요리의 수를 종류별로 계산할 수 있다.
+
+- **예제) counting 컬렉터 사용**
+
+  ```java
+  Map<Type, Long> typesCount = menu.stream().collect(
+    groupingBy(Dish::getType, counting()));
+  ```
+
+  출력 결과
+
+  ```
+  {FISH=2, OTHER=4, MEAT=3}
+  ```
+
+<br>
+
+분류 함수 한 개의 인수를 갖는 **groupingBy(f)는 사실 groupingBy(f, toList())의 축약형이다.**
+
+<br>
+
+- **예제) 요리의 종류를 분리하는 컬렉터로 메뉴에서 가장 높은 칼로리를 가진 요리 찾기**
+
+  ```java
+  Map<Type, Optional<Dish>> mostCaloricByType =
+    menu.stream()
+    .collect(groupingBy(Dish::getType,
+                        maxBy(comparing(Dish::getCalories))));
+  ```
+
+  - 그룹화의 결과로 **요리의 종류를 키로, Optional\<Dish>를 값으로** 갖는 맵이 반환
+
+<br>
+
+### 컬렉터 결과를 다른 형식에 적용하기
+
+마지막 그룹화 연산에서 맵의 모든 값을 Optional로 감쌀 필요가 없으므로 Optional을 삭제할 수 있다.
+
+즉, 다음처럼 팩토리 메서드 **Collectors.collectingAndThen** 으로 컬렉터가 반환한 결과를 다른 형식으로 활용할 수 잇다.
+
+- **예제) 각 서브그룹에서 가장 칼로리가 높은 요리 찾기**
+
+  ```java
+  Map<Type, Dish> mostCaloricByType2 =
+    menu.stream()
+    .collect(groupingBy(Dish::getType,			// 분류 함수
+                        collectingAndThen(	// 감싸인 컬렉터
+                          maxBy(comparing(Dish::getCalories)),
+                          Optional::get)));	// 변환 함수
+  
+  ```
+
+  출력 결과
+
+  ```
+  {FISH=salmon, OTHER=pizza, MEAT=pork}
+  ```
+
+  * collectingAndThen은 **적용할 컬렉터와 변환 함수를** 인수로 받아 다른 컬렉터를 변환한다.
+
+<br>
+
+### groupingBy와 함께 사용하는 다른 컬렉터 예제
+
+일반적으로 스트림에서 같은 그룹으로 분류된 모든 요소에 리듀싱 작업을 수행할 때는 팩토리 메서드 groupingBy에 두 번째 인수로 전달한 컬렉터를 사용한다.
+
+- **예제) 메뉴에 있는 모든 요리의 칼로리 합계**
+
+  ```java
+  Map<Type, Integer> totalCaloriesByType =
+    menu.stream().collect(groupingBy(Dish::getType,
+                                     summingInt(Dish::getCalories)));
+  ```
+
+  출력 결과
+
+  ```
+  {FISH=750, OTHER=1550, MEAT=1900}
+  ```
+
+<br>
+
+mapping 메서드는 **스트림의 인수를 변환하는 함수** 와 **변환 함수의 결과 객체를 누적하는 컬렉터를** 인수로 받는다.
+
+mapping은 입력 요소를 누적하기 전에 매핑 함수를 적용해서 **다양한 형식의 객체를 주어진 형식의 컬렉터에 맞게 변환하는 역할을 한다.**
+
+- **예제) 각 요리 형식에 존재하는 모든 CaloricLevel 구하기**
+
+  ```java
+  Map<Type, Set<CaloricLevel>> caloricLevelsByType =
+    menu.stream().collect(
+    groupingBy(Dish::getType, mapping(dish -> {
+      if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+      else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+      else return CaloricLevel.FAT; }, toSet())));
+  ```
+
+  출력 결과
+
+  ```
+  {FISH=[DIET, NORMAL], OTHER=[DIET, NORMAL], MEAT=[FAT, DIET, NORMAL]}
+  ```
+
+  - mapping 메서드에 전달한 변환 함수는 Dish를 CaloricLevel로 매핑한다.
+  - 그룹화 함수로 생성된 서브스트림에 mapping 함수를 적용한다.
+
+<br>
+
+이때 **toCollection을** 이용하면 원하는 방식으로 결과를 제어할 수 있다.
+
+- **예제) toCollection 사용**
+
+  ```java
+  Map<Type, Set<CaloricLevel>> caloricLevelsByType2 =
+    menu.stream().collect(
+    groupingBy(Dish::getType, mapping(dish -> {
+      if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+      else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+      else return CaloricLevel.FAT;
+    }, toCollection(HashSet::new))));
+  ```
+
+  - 이전 코드와 결과는 똑같으나 이전에는 **Set의 형식이 정해져 있지 않았다.** 이때 toCollection을 이용하면 **원하는 타입으로 결과를 제어할 수 있다.**
+
+<br>
+
+# 6.4. 분할
+
+분할은 **분할 함수(partitioning function)라** 불리는 프레디케이트를 분류 함수로 사용하는 특수한 그룹화 기능이다. **분할 함수는 불리언을 반환하므로 맵의 키 형식은 Boolean이다.** 결과적으로 그룹화 맵은 최대 (true or false) 두 개의 그룹으로 분리된다.
+
+- **예제) 채식 요리 분류**
+
+  ```java
+  Map<Boolean, List<Dish>> partitionedMenu =
+    menu.stream().collect(partitioningBy(Dish::isVegetarian));
+  ```
+
+  출력 결과
+
+  ```
+  {false=[pork, beef, chicken, prawns, salmon], 
+    true=[french fries, rice, season, pizza]}
+  ```
+
+  - **partitioningBy** 라는 분할 함수를 사용하였다.
+
+<br>
+
+## 6.4.1. 분할의 장점
+
+분할 함수가 반환하는 참, 거짓 두 가지 요소의 스트림 리스트를 모두 유지한다는 것이 분할의 장점이다.
+
+- **예제) 채식이 아닌 모든 요리 리스트 구하기**
+
+  ```java
+  Map<Boolean, Map<Type, List<Dish>>> vegetarianDishesByType =
+    menu.stream().collect(
+    partitioningBy(Dish::isVegetarian,						// 분할 함수
+                   groupingBy(Dish::getType)));		// 두 번째 컬렉터
+  ```
+
+  출력 결과
+
+  ```
+  {false={FISH=[prawns, salmon], MEAT=[pork, beef, chicken]}, 
+    true={OTHER=[french fries, rice, season, pizza]}}
+  ```
+
+  - 컬렉터를 두 번째 인수로 전달할 수 있는 오버로드 된 버전의 partitioningBy 메서드이다.
+
+<br>
+
+- **예제) 채식 요리와 채식이 아닌 요리 각각의 그룹에서 가장 칼로리가 높은 요리**
+
+  ```java
+  Map<Boolean, Dish> mostCaloricPartitionedByVegetarian =
+    menu.stream().collect(
+    partitioningBy(Dish::isVegetarian,
+                   collectingAndThen(maxBy(comparingInt(Dish::getCalories)),
+                                     Optional::get)));
+  ```
+
+  출력 결과
+
+  ```
+  {false=pork, true=pizza}
+  ```
+
+<br>
+
+partitioningBy가 반환한 맵 구현은 참과 거짓 두 가지 키만 포함하므로 더 **간결하고 효과적이다.**
+
+<br>
+
+## 6.4.2. 숫자를 소수와 비소수로 분할하기
+
+정수 n을 인수로 받아서 2에서 n까지의 자연수를 **소수(prime) 와 비소수(nonprime)** 로 나누는 프로그램을 구현해보자.
+
+<br>
+
+1. 소수인지 아닌지 판단하는 프레디케이트 구현
+
+   ```java
+   public boolean isPrime(int candidate) {
+     return IntStream.range(2, candidate)
+       .noneMatch(i -> candidate % i == 0);
+   }
+   ```
+
+2. 소수의 대상을 주어진 수의 제곱근 이하의 수로 제한
+
+   ```java
+   public boolean isPrime(int candidate) {
+     int candidateRoot = (int) Math.sqrt((double)candidate);
+     return IntStream.range(2, candidateRoot)
+       .noneMatch(i -> candidate % i == 0);
+   }
+   ```
+
+3. n개의 숫자를 포함하는 스트림을 만들고 **isPrime 메서드를 프레디케이트로** 이용하여 **partitioningBy 컬렉터로 리듀스해서 소수와 비소수를 분류한다.**
+
+   ```java
+   public Map<Boolean, List<Integer>> partitionPrimes(int n) {
+     return IntStream.rangeClosed(2, n).boxed()
+       .collect(partitioningBy(this::isPrime));
+   }
+   ```
+
+<br>
+
+### Collectors 클래스의 정적 팩토리 메서드
+
+| 팩토리 메서드     | 반환 형식               | 사용 예제                                                    | 활용예                                                       |
+| ----------------- | ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| toList            | List\<T>                | 스트림의 모든 항목을 리스트로 수집                           | List\<Dish> dishes = menuStream.collect(toList());           |
+| toSet             | Set\<T>                 | 중복이 없는 집합으로 수집                                    | Set\<Dish> dishes = menuStream.collect(toSet());             |
+| toCollection      | Collection\<T>          | 발행자가 제공하는 컬렉션으로 수집                            | Collection\<Dish> dishes = menuStream.collect(toCollection(), ArrayList::new); |
+| counting          | Long                    | 스트림의 항목 수 계산                                        | long howManyDishes = meunStream.collect(counting());         |
+| summingInt        | Integer                 | 스트림의 항목에서 정수 프로퍼티값을 더함                     | int totalCalories = menuStream.collect(<br>summingInt(Dish::getCalories)); |
+| averagingInt      | Double                  | 정수 프로퍼티의 평균값 계산                                  | double avgCalories = menuStream.collect(<br>averagingInt(Dish::getCalories)); |
+| summarizingInt    | IntSummaryStatistics    | 최대값, 최솟값, 합계, 평균 등의 정보 통계 수집               | IntSummaryStatistics menuStatistics =<br>menuStream.collect(<br>summarizingInt(Dish::getCalories)); |
+| joining           | String                  | 각 항목에 toString 메서드를 호출한 결과를 연결               | String shortMenu = menuStream.map(Dish::getName)<br>.collect(joining(", ")); |
+| maxBy             | Optional\<T>            | 주어진 비교자를 이용해서 최댓값 요소를 Optional로 반환       | Optional\<Dish> fattest = menuStream.collect(<br>maxBy(comparingInt(Dish::getCalories))); |
+| minBy             | Optional\<T>            | 주어진 비교자를 이용해서 최솟값 요소를 Optinal로 반환        | Optional\<Dish> lightest = menuStream.collect(<br>minBy(comparing(Dish::getCalories))); |
+| reducing          | 리듀스 연산의 타입      | 누적자를 초깃값으로 설정한 다음<br>각 요소를 반복적으로 누적자와 합쳐<br>스트림을 하나의 값으로 리듀싱 | int totalCalories = menuStream<br>.collect(reducing(0, Dish::getCalories, <br>Integer::sum)); |
+| collectingAndThen | 변환 함수의 반환 타입   | 다른 컬렉터를 감싸고 그 결과에 변환 함수 적용                | int howManyDishes = <br>menuStream.collect(<br>collectingAndThen(toList(), List::size)); |
+| groupingBy        | Map\<K, List\<T>>       | 하나의 프로퍼티값을 기준으로 스트림의 항목을 그룹화 하며<br>기준 프로퍼티 값을 결과 맵의 키로 사용 | Map\<Type, List\<Dish>> dishesByType =<br>menuStream.collect(groupingBy(<br>Dish::getType)); |
+| partitioningBy    | Map\<Boolean, List\<T>> | 프레디케이트를 스트림의 각 항목에<br>적용한 결과로 항목 분할 | Map\<Boolean, List\<Dish>> vegetarianDishes =<br>menuStream.collect(<br>partitioningBy(Dish::isVegetarian)); |
+
+<br>
 
