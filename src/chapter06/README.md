@@ -697,3 +697,142 @@ partitioningBy가 반환한 맵 구현은 참과 거짓 두 가지 키만 포함
 
 <br>
 
+# 6.5. Collector 인터페이스
+
+Collector 인터페이스는 리듀싱 연산(컬렉터)을 어떻게 구현할지 제공하는 메서드 집합으로 구성된다.
+
+Collector 인터페이스를 직접 구현해서 더 효율적으로 문제를 해결하는 컬렉터를 만드는 방법을 살펴보자.
+
+<br>
+
+**Collector 인터페이스의 시그니처와 다섯 개의 메서드 정의**
+
+```java
+public interface Collector<T, A, R> {
+  Supplier<A> supplier();
+  BiConsumer<A, T> accumulator();
+  Function<A, R> finisher();
+  BinaryOperator<A> combiner();
+  Set<Characteristics> characteristics();
+}
+```
+
+- **T** : 수집될 스트림 항목의 제네릭 형식이다.
+- **A** : 누적자, 즉 수집 과정에서 중간 결과를 누적하는 객체의 형식이다.
+- **R** : 수집 연산 결과 객체의 형식이다.
+
+<br>
+
+예를 들어 Stream\<T>의 모든 요소를 List\<T>로 수집하는 ToListCollector\<T> 라는 클래스를 구현할 수 있다.
+
+```java
+public class ToListCollector<T> implements Collector<T, List<T>, List<T>>
+```
+
+<br>
+
+## 6.5.1. Collector 인터페이스의 메서드 살펴보기
+
+### supplier 메서드: 새로운 결과 컨테이너 만들기
+
+supplier 메서드는 빈 결과로 이루어진 Supplier를 반환해야 한다. 즉, <u>supplier는 수집 과정에서 빈 누적자 인스턴스를 만드는 파라미터가 없는 함수다.</u>
+
+- **ToListCollector에서 supplier**
+
+  ```java
+  public Supplier<List<T>> supplier() {
+    return () -> new ArrayList<>();
+  }
+  ```
+
+  > 생성자 참조를 전달하는 방법도 있다.
+
+  ```java
+  public Supplier<List<T>> supplier() {
+    return ArrayList::new;
+  }
+  ```
+
+<br>
+
+### accumulator 메서드 : 결과 컨테이너에 요소 추가하기
+
+accumulator 메서드는 <u>리듀싱 연산을 수행하는 함수를 반환한다.</u> 즉 누적자(스트림의 첫 n-1개 항목을 수집한 상태)와 n번째 요소를 함수에 적용한다.
+
+- **ToListCollector에서 accumulator**
+
+  ```java
+  public BiConsumer<List<T>, T> accumulator() {
+    return (list, item) -> list.add(item);
+  }
+  ```
+
+  > 생성자 참조를 전달하는 방법도 있다.
+
+  ```java
+  public BiConsumer<List<T>, T> accumulator() {
+    return List::add;
+  }
+  ```
+
+<br>
+
+### finisher 메서드 : 최종 변환값을 결과 컨테이너로 적용하기
+
+finisher 메서드는 스트림 탐색을 끝내고 <u>누적자 객체를 최종 결과로 변환하면서 누적 과정을 끝낼 때 호출할 함수를 반환해야 한다.</u> 때로는 누적자 객체가 이미 최종 결과인 상황도 있다. 이런 때는 변환 과정이 필요하지 않으므로 finisher 메서드는 항등 함수를 반환한다.
+
+- **ToListCollector에서 finisher**
+
+  ```java
+  public Function<List<T>, List<T>> finisher() {
+    return Function.identity();	// 항등 함수
+  }
+  ```
+
+<br>
+
+### 순차 리듀싱 과정의 논리적 순서
+
+<img src="http://cfile7.uf.tistory.com/image/22053A3C588D90420C1209">
+
+<br>
+
+### combiner 메서드 : 두 결과 컨테이너 병합
+
+combiner는 스트림의 서로 다른 서브파트를 병렬로 처리할 때 누적자가 이 결과를 어떻게 처리할지 정의한다. 즉, 스트림의 두 번째 서브파트에서 수집한 항목 리스트를 첫 번째 서브파트 결과 리스트의 뒤에 추가하면 된다.
+
+```java
+public BinaryOperator<List<T>> combiner() {
+  return (list1, list2) -> {
+    list1.addAll(list2);
+    return list1;
+  };
+}
+```
+
+- **병렬화 리듀싱 과정에서 combiner 메서드 활용**
+
+  <img src="../capture/스크린샷 2019-09-19 오후 11.38.03.png">
+
+  1. 스트림은 분할해야 하는지 정의하는 조건이 거짓으로 바뀌기 전까지 원래 **스트림을 재귀적으로 분할한다.**
+  2. 모든 서브스트림(substream)의 각 요소에 **리듀싱 연산을 순차적으로 적용해서 서브스트림을 병렬로 처리할 수 있다.**
+  3. 마지막에는 컬렉터의 combiner 메서드가 반환하는 함수로 모든 부분결과를 쌍으로 합친다. 즉, **분할된 모든 서브스트림의 결과를 합치면서 연산이 완료된다.**
+
+<br>
+
+combiner 메서드를 이용하면 **스트림의 리듀싱을 병렬로 수행할 수 있다.**
+
+<br>
+
+### Characteristics 메서드
+
+characteristics 메서드는 컬렉터의 연산을 정의하는 Characteristics 형식의 불변 집합을 반환한다. **Characteristics는 스트림을 병렬로 리듀스할 것인지 그리고 병렬로 리듀한다면 어떤 최적화를 선택해야 할지 힌트를 제공한다.**
+
+<br>
+
+**Characteristics 세 항목을 포함하는 열거형**
+
+- **UNORDERED** : 리듀싱 결과는 스트림 요소의 방문 순서나 누적 순서에 영향을 받지 않는다.
+- **CONCURRENT** : 다중 스레드에서 accumulator 함수를 동시에 호출할 수 있으며 이 컬렉터는 스트림의 병렬 리듀싱을 수행할 수 있다. 컬렉터의 플래그에 UNORDERED를 함께 설정하지 않았다면 데이터 소스가 정렬되어 있지 않은 상황에서만 병렬 리듀싱을 수행할 수 있다.
+- **IDENTITY_FINISH** : finisher 메서드가 반환하는
+

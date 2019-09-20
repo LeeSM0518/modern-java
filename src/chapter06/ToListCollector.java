@@ -18,17 +18,20 @@ public class ToListCollector<T> implements Collector<T, List<T>, List<T>> {
 
   @Override
   public BiConsumer<List<T>, T> accumulator() {
-    return null;
+    return List::add;
   }
 
   @Override
   public BinaryOperator<List<T>> combiner() {
-    return null;
+    return (list1, list2) -> {
+      list1.addAll(list2);
+      return list1;
+    };
   }
 
   @Override
   public Function<List<T>, List<T>> finisher() {
-    return null;
+    return Function.identity();
   }
 
   @Override
