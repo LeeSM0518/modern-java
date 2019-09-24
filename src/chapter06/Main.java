@@ -165,7 +165,7 @@ public class Main {
     long fastest = Long.MAX_VALUE;
     for (int i = 0; i < 10; i++) {
       long start = System.nanoTime();
-      partitionPrimesWithCustomCollector(1_000_000);
+//      partitionPrimesWithCustomCollector(1_000_000);
       long duration = (System.nanoTime() - start) / 1_000_000;
       if (duration < fastest) fastest = duration;
     }
@@ -185,28 +185,28 @@ public class Main {
         .noneMatch(i -> candidate % i == 0);
   }
 
-  public static Map<Boolean, List<Integer>> partitionPrimesWithCustomCollector(int n) {
+//  public static Map<Boolean, List<Integer>> partitionPrimesWithCustomCollector(int n) {
+////    return IntStream.rangeClosed(2, n).boxed()
+////        .collect(new PrimeNumbersCollector());
 //    return IntStream.rangeClosed(2, n).boxed()
-//        .collect(new PrimeNumbersCollector());
-    return IntStream.rangeClosed(2, n).boxed()
-        .collect(
-            () -> new HashMap<>() {{
-              put(true, new ArrayList<>());
-              put(false, new ArrayList<>());
-            }},
-            (acc, candidate) -> {
-              acc.get(isPrime(acc.get(true), candidate)).add(candidate);
-            },
-            (map1, map2) -> {
-              map1.get(true).addAll(map2.get(true));
-              map1.get(false).addAll(map2.get(false));
-            });
-  }
-
-  public static Map<Boolean, List<Integer>> partitionPrimes(int n) {
-    return IntStream.rangeClosed(2, n).boxed()
-        .collect(partitioningBy(Main::isPrime));
-  }
+//        .collect(
+//            () -> new HashMap<>() {{
+//              put(true, new ArrayList<>());
+//              put(false, new ArrayList<>());
+//            }},
+//            (acc, candidate) -> {
+//              acc.get(isPrime(acc.get(true), candidate)).add(candidate);
+//            },
+//            (map1, map2) -> {
+//              map1.get(true).addAll(map2.get(true));
+//              map1.get(false).addAll(map2.get(false));
+//            });
+//  }
+//
+//  public static Map<Boolean, List<Integer>> partitionPrimes(int n) {
+//    return IntStream.rangeClosed(2, n).boxed()
+//        .collect(partitioningBy(Main::isPrime));
+//  }
 
 
 }
