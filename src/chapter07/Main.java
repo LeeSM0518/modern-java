@@ -6,8 +6,23 @@ import java.util.stream.Stream;
 public class Main {
 
   public static void main(String[] args) {
-    printRunTime(() -> sequentialSum(1_000_000_0));
-    printRunTime(() -> iterativeSum(1_000_000_0));
+    final String SENTENCE = "There is no requirement that a new or distinct result be returned each " +
+        "time the supplier is invoked.";
+    System.out.println("Found " + countWordsIteratively(SENTENCE) + " words");
+  }
+
+  public static int countWordsIteratively(String s) {
+    int counter = 0;
+    boolean lastSpace = true;
+    for (char c : s.toCharArray()) {
+      if (Character.isWhitespace(c)) {
+        lastSpace = true;
+      } else {
+        if (lastSpace) counter++;
+        lastSpace = false;
+      }
+    }
+    return counter;
   }
 
   public static long sequentialSum(long n) {

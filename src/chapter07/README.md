@@ -315,3 +315,296 @@ Spliterator는 병렬 작업에 특화되어 있다.
 > 이처럼 trySplit의 결과가 null이 될 때까지, 즉 더 이상 분할할 수 없을 때까지 실행된다.
 
 <br>
+
+### Spliterator 특성
+
+Spliterator는 characteristics라는 추상 메서드도 정의한다. **Characteristics 메서드 Spliterator 자체의 특성 집합을 포함하는 int를 반환한다.**
+
+<br>
+
+* **Spliterator 특성**
+
+| 특성       | 의미                                                         |
+| ---------- | ------------------------------------------------------------ |
+| ORDERED    | 리스트처럼 요소에 정해진 순서가 있으므로 Spliterator는 요소를 탐색하고 분할할 때 이 순서에 유의해야 한다. |
+| DISTINCT   | x, y 두 요소를 방문했을 때, x.equals(y)는 항상 false를 반환한다. |
+| SORTED     | 탐색된 요소는 미리 정의된 정렬 순서를 따른다.                |
+| SIZED      | 크기가 알려진 소스로 Spliterator를 생성했으므로 estimatedSize()는 정확한 값을 반환한다. |
+| NON-NULL   | 탐색하는 모든 요소는 null이 아니다.                          |
+| IMMUTABLE  | 이 Spliterator의 소스는 불변이다. 즉, 요소를 탐색하는 동안 요소를 추가하거나, 삭제하거나, 고칠 수 없다. |
+| CONCURRENT | 동기화 없이 Spliterator의 소스를 여러 스레드에서 동시에 고칠 수 있다. |
+| SUBSIZED   | 이 Spliterator 그리고 분할되는 모든 Spliterator는 SIZED 특성을 갖는다. |
+
+<br>
+
+## 7.3.2. 커스텀 Spliterator 구현하기
+
+* **반복형으로 단어 수를 세는 메서드**
+
+  ```java
+  public int countWordsIteratively(String s) {
+    int counter = 0;
+    boolean lastSpace = true;
+    for (char c : s.toCharArray()) {
+      if (Character.isWhitespace(c)) {
+        lastSpace = true;
+      } else {
+        if (lastSpace) counter++;
+        lastSpace = false;
+      }
+    }
+    return counter;
+  }
+  ```
+
+* **Main**
+
+  ```java
+  public static void main(String[] args) {
+    final String SENTENCE = "There is no requirement that a new or distinct result be returned each " +
+      "time the supplier is invoked.";
+    System.out.println("Found " + countWordsIteratively(SENTENCE) + " words");
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  Found 18 words
+  ```
+
+반복형 대신 함수형을 이용하면 직접 스레드를 동기화하지 않고도 **병렬 스트림으로 작업을 병렬화할 수 있다.**
+
+<br>
+
+### 함수형으로 단어 수를 세는 메서드 재구현하기
+
+우선 String을 스트림으로 변환 한다. 스트림은 기본형만 제공하므로 Stream\<Character>를 사용해야 한다.
+
+```java
+Stream<Character> stream = IntStream.range(0, SENTENCE.length())
+  .mapToObj(SENTENCE::charAt);
+```
+
+<br>
+
+스트림에 리듀싱 연산을 실행하면서 단어 수를 계산할 수 있다. 이들 변수 상태를 캡슐화하는 새로운 클래스 WordCounter를 만들어야 한다.
+
+* **WordCounter.java**
+
+  ```java
+  public class WordCounter {
+  
+    private final int counter;
+    private final boolean lastSpace;
+  
+    public WordCounter(int counter, boolean lastSpace) {
+      this.counter = counter;
+      this.lastSpace = lastSpace;
+    }
+  
+    // 반복 알고리즘처럼 accumulate 메서드는
+    // 문자열의 문자를 하나씩 탐색한다.
+    public WordCounter accumulate(Character c) {
+      if (Character.isWhitespace(c)) {
+        return lastSpace ?
+            this : new WordCounter(counter, true);
+      } else {
+        return lastSpace ?
+            // 문자를 하나씩 탐색하다 공백 문자를 만나면
+            // 지금까지 탐색한 문자를 단어로 간주하여
+            // 단어 수를 증가시킨다.
+            new WordCounter(counter + 1, false) :
+            this;
+      }
+    }
+  
+    public WordCounter combine(WordCounter wordCounter) {
+      // 두 WordCounter 의 counter 값을 더한다.
+      return new WordCounter(counter + wordCounter.counter,
+          // counter 값만 더할 것이므로 마지막 공백은 신경 쓰지 않는다.
+          wordCounter.lastSpace);
+    }
+  
+    public int getCounter() {
+      return counter;
+    }
+  
+  }
+  ```
+
+  * accumulate 메서드는 WordCounter의 상태를 어떻게 바꿀 것인지, 또는 엄밀히 WordCounter는 불편 클래스이므로 새로운 WordCounter 클래스를 어떤 상태로 생성할 것인지 정의한다.
+  * 스트림을 탐색하면서 새로운 문자를 찾을 때마다 accumulate 메서드를 호출한다.
+
+<br>
+
+* **새로운 문자 c를 탐색했을 때 WordCounter의 상태 변화**
+
+  <img src="../capture/스크린샷 2019-09-25 오후 2.12.09.png">
+
+<br>
+
+* **리듀싱 연산을 직관적으로 구현할 수 있다.**
+
+  ```java
+  private static int countWords(Stream<Character> stream) {
+    WordCounter wordCounter = stream.reduce(new WordCounter(0, true),
+                                            WordCounter::accumulate, WordCounter::combine);
+    return wordCounter.getCounter();
+  }
+  ```
+
+<br>
+
+* **Main**
+
+  ```java
+  public static void main(String[] args) {
+    final String SENTENCE = "There is no requirement that a new or distinct result be returned each " +
+      "time the supplier is invoked.";
+    Stream<Character> stream = IntStream.range(0, SENTENCE.length())
+      .mapToObj(SENTENCE::charAt);
+    System.out.println("Found " + countWords(stream) + " words");
+  }
+  ```
+
+<br>
+
+* **실행 결과**
+
+  ```
+  Found 18 words
+  ```
+
+<br>
+
+### WordCounter 병렬로 수행하기
+
+단어 수를 계산하는 연산을 병렬 스트림으로 처리하자.
+
+* **Main**
+
+  ```java
+  System.out.println("Found " + countWords(stream.parallel()) + " words");
+  ```
+
+* **실행 결과**
+
+  ```
+  Found 57 words
+  ```
+
+  > 18이 아닌 57이 나왔음을 알 수 있다. 즉, 잘못된 값이 나옴을 알 수 있다.
+
+<br>
+
+원래 문자열을 임의의 위치에서 둘로 나누다보니 예상치 못하게 하나의 단어를 둘로 계산하는 상황이 발생할 수 있다.
+
+즉, **순차 스트림을 병렬 스트림으로 바꿀 때 스트림 분할 위치에 따라 잘못된 결과가 나올 수 있다.**
+
+문자열을 임의의 위치에서 분할하지 말고 단어가 끝나는 위치에서만 분할하는 방법으로 이 문제를 해결할 수 있다. 그러면 **단어 끝에서 문자열을 분할하는 문자 Spliterator가 필요하다.**
+
+<br>
+
+* **문자 Spliterator를 구현한 다음에 병렬 스트림으로 전달하는 코드**
+
+  ```java
+  public class WordCounterSpliterator implements Spliterator<Character> {
+  
+    private final String string;
+    private int currentChar = 0;
+  
+    public WordCounterSpliterator(String string) {
+      this.string = string;
+    }
+  
+    @Override
+    public boolean tryAdvance(Consumer<? super Character> action) {
+      action.accept(string.charAt(currentChar++));   // 현재 문자를 소비한다.
+      return currentChar < string.length();          // 소비할 문자가 남아있으면 true 를 반환
+    }
+  
+    @Override
+    public Spliterator<Character> trySplit() {
+      int currentSize = string.length() - currentChar;
+      if (currentSize < 10) {
+        // 피싱할 문자열을 순차 처리할 수 있을 만큼
+        // 충분히 작아졌음을 알리는 null 을 반환한다.
+        return null;
+      }
+      // 피싱할 문자열의 중간을 분할 위치로 설정한다.
+      for (int splitPos = currentSize / 2 + currentChar; splitPos < string.length(); splitPos++) {
+        // 다음 공백이 나올 때까지 분할 위치를 뒤로 이동 시킨다.
+        if (Character.isWhitespace(string.charAt(splitPos))) {
+          // 처음부터 분할 위치까지 문자열을 파싱할
+          // 새로운 WordCounterSpliterator 를 생성한다.
+          Spliterator<Character> spliterator =
+              new WordCounterSpliterator(string.substring(currentChar,
+                  splitPos));
+          // 이 WordCounterSpliterator 의 시작 위치를 분할 위치로 설정한다.
+          currentChar = splitPos;
+          // 공백을 찾았고 문자열을 분리했으므로 루프를 종료한다.
+          return spliterator;
+        }
+      }
+      return null;
+    }
+  
+    @Override
+    public long estimateSize() {
+      return string.length() - currentChar;
+    }
+  
+    @Override
+    public int characteristics() {
+      return ORDERED + SIZED + SUBSIZED + NONNULL + IMMUTABLE;
+    }
+    
+  }
+  ```
+
+  * 분석 대상 문자열로 Spliterator를 생성한 다음에 현재 탐색 중인 문자를 가리키는 인덱스를 이용해서 모든 문자를 반복 탐색한다.
+  * tryAdvance 메서드는 문자열에서 현재 인덱스에 해당하는 문자를 Consumer에 제공한 다음에 인덱스를 증가시킨다.  인수로 전달된 Consumer는 스트림을 탐색하면서 적용해야 하는 함수 집합이 작업을 처리할 수 있도록 소비한 문자를 전달하는 자바 내부 클래스다.
+  * trySplit은 반복될 자료구조를 분할하는 로직을 포함하므로 Spliterator에서 가장 중요한 메서드다. 우선 분할 동작을 중단할 한계를 설정해야 한다.
+  * 탐색해야 할 요소의 개수(estimatedSize)는 Spliterator가 파싱할 문자열 전체 길이(string.length())와 현재 반복 중인 위치(currentChar)의 차다.
+  * characteristics 메서드는 프레임워크에 Spliterator가 ORDERED (문자열의 문자 등장 순서), SIZED (estimatedSize 메서드의 반환값이 정확), SUBSIZED (trySplit으로 생성된 Spliterator도 정확한 크기를 가짐) , NONNULL (문자열에는 null 문자가 존재하지 않음), IMMUTABLE (문자열 자체가 불편 클래스이므로 문자열을 파싱하면서 속성이 추가되지 않음) 등의 특성임을 알려준다.
+
+<br>
+
+### WordCounterSpliterator 활용
+
+- **WordCounterSpliterator를 병렬 스트림에 사용**
+
+  ```java
+  Spliterator<Character> spliterator = new WordCounterSpliterator(SENTENCE);
+  Stream<Character> stream = StreamSupport.stream(spliterator, true);
+  ```
+
+  - StreamSupport.stream 팩토리 메서드로 전달한 두 번째 불리언 인수는 병렬 스트림 생성 여부를 지시한다.
+
+- **실행**
+
+  ```java
+  System.out.println("Found " + countWords(stream) + " words");
+  ```
+
+- **결과**
+
+  ```
+  Found 18 words
+  ```
+
+<br>
+
+Spliterator는 첫 번째 탐색 시점, 첫 번째 분할 시점, 또는 첫 번째 예상 크기(estimatedSize) 요청 시점에 요소의 소스를 바인딩할 수 있다. 이와 같은 동작을 늦은 바인딩 Spliterator라고 부른다.
+
+<br>
+
+# 7.4. 마치며
+
+- 내부 반복을 이용하면 명시적으로 다른 스레드를 사용하지 않고도 스트림을 병렬로 처리할 수 있다.
+- 스트림을 병렬로 처리하는 것이 항상 빠른 것은 아니다.
+- 병렬 스트림으로 데이터 집합을 병렬 실행할 때 특히 처리해야 할 데이터가 아주 많거나 각 요소를 처리하는 데 오랜 시간이 걸릴 때 성능을 높일 수 있다.
+- 가능하면 기본형 특화 스트림을 사용하여 병렬 처리하는 것이 좋다.
+- 포크/조인 프레임워크에서는 병렬화할 수 있는 태스크를 작은 태스크로 분할한 다음에 분할된 태스크를 각각의 스레드로 실행하며 서브태스크 각각의 결과를 합쳐서 최종 결과를 생산한다.
+- Spliterator는 탐색하려는 데이터를 포함하는 스트림을 어떻게 병렬화할 것인지 정의한다.
