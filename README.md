@@ -7,16 +7,16 @@
 # 목차
 
 * **PART 01. 기초**
-  - [CHAPTER 01. 자바 8, 9, 10, 11: 무슨 일이 일어나고 있는가?](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter01)
-  - [CHAPTER 02. 동작 파라미터화 코드 전달하기](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter02)
-  - [CHAPTER 03. 람다 표현식](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter03)
+  - [CHAPTER 01. 자바 8, 9, 10, 11: 무슨 일이 일어나고 있는가?](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter01)
+  - [CHAPTER 02. 동작 파라미터화 코드 전달하기](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter02)
+  - [CHAPTER 03. 람다 표현식](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter03)
 * **PART 02. 함수형 데이터 처리** 
-  * [CHAPTER 04. 스트림 소개](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter04)
-  * [CHAPTER 05. 스트림 활용](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter05)
-  * [CHAPTER 06. 스트림으로 데이터 수집](https://github.com/LeeSM0518/modern-java/tree/master/src/chapter06)
-  * CHAPTER 07. 병렬 데이터 처리와 성능
+  * [CHAPTER 04. 스트림 소개](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter04)
+  * [CHAPTER 05. 스트림 활용](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter05)
+  * [CHAPTER 06. 스트림으로 데이터 수집](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter06)
+  * [CHAPTER 07. 병렬 데이터 처리와 성능](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter07)
 * **PART 03. 스트림과 람다를 이용한 효과적 프로그래밍**
-  * CHAPTER 08. 컬렉션 API 개선
+  * [CHAPTER 08. 컬렉션 API 개선](https://github.com/LeeSM0518/modern-java/tree/master/src/main/java/chapter08)
   * CHAPTER 09. 리팩터링, 테스팅, 디버깅
   * CHAPTER 10. 람다를 이용한 도메인 전용 언어
 * **PART 04. 매일 자바와 함께**
