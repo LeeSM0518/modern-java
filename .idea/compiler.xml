@@ -10,7 +10,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="modern-java" target="1.5" />
+      <module name="modern-java" target="9" />
     </bytecodeTargetLevel>
   </component>
 </project>
