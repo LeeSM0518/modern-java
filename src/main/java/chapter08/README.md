@@ -360,3 +360,150 @@ Matrix
 <br>
 
 ## 8.3.7. 합침
+
+**putAll을 사용하여** 두 그룹의 연락처를 포함하는 두 개의 맵을 합칠 수 있다.
+
+```java
+Map<String, String> family = Map.ofEntries(
+  entry("Teo", "Star Wars"), entry("Cristina", "James Bond"));
+Map<String, String> friends = Map.ofEntries(
+  entry("Raphael", "Star Wars"));
+Map<String, String> everyone = new HashMap<>(family);
+everyone.putAll(friends);     // friends의 모든 항목을 everyone으로 복사
+System.out.println(everyone);
+```
+
+**실행 결과**
+
+```
+{Cristina=James Bond, Raphael=Star Wars, Teo=Star Wars}
+```
+
+* 중복된 키가 없다면 위 코드는 잘 작동한다. 값을 좀 더 유연하게 합쳐야 한다면 새로운 **merge 메서드를** 이용할 수 있다.
+
+<br>
+
+family와 friends 두 맵 모두에 Cristina가 다른 영화 값으로 존재한다고 가정하자.
+
+```java
+Map<String, String> family = Map.ofEntries(
+  entry("Teo", "Star Wars"), entry("Cristina", "James Bond"));
+Map<String, String> friends = Map.ofEntries(
+  entry("Raphael", "Star Wars"), entry("Cristina", "Matrix"));
+```
+
+forEach와 merge 메서드를 이용해 충돌을 해결할 수 있다. 
+
+```java
+Map<String, String> everyone = new HashMap<>(family);
+friends.forEach((k, v) ->
+                // 중복된 키가 있으면 두 값을 연결
+                everyone.merge(k, v, (movie1, movie2) -> movie1 + " & " + movie2));
+System.out.println(everyone);
+```
+
+**실행 결과**
+
+```
+{Raphael=Star Wars, Cristina=James Bond & Matrix, Teo=Star Wars}
+```
+
+<br>
+
+merge 메서드는 널값과 관련된 복잡한 상황도 처리한다.
+
+지정된 키와 연관된 값이 없거나 값이 널이면 **merge는** 키를 널이 아닌 값과 연결한다. 아니면 merge는 연결된 값을 주어진 매핑 함수의 결과값으로 대치하거나 결과가 널이면 항목을 제거한다.
+
+<br>
+
+### *merge를 이용해 초기화 검사 구현*
+
+영화를 몇 회 시청했는지 기록하는 맵
+
+```java
+Map<String, Long> moviesToCount = new HashMap<>();
+String movieName = "JamesBond";
+Long count = moviesToCount.get(movieName);
+if (count == null) {
+  moviesToCount.put(movieName, 1L);
+} else {
+  moviesToCount.put(movieName, count + 1);
+}
+```
+
+위 코드를 다음처럼 구현할 수 있다.
+
+```java
+moviesToCount.merge(movieName, 1L, (key, count) -> count + 1L);
+```
+
+<br>
+
+# 8.4. 개선된 ConcurrentHashMap
+
+ConcurrentHashMap은 내부 자료구조의 특정 부분만 잠궈 동시 추가, 갱신 작업을 허용한다. 따라서 **동기화된 Hashtable 버전에 비해 읽기 쓰기 연산 성능이 월등하다.**
+
+<br>
+
+## 8.4.1. 리듀스와 검색
+
+ConcurrentHashMap의 세 가지 새로운 연산
+
+* **forEach** : 각 (키, 값) 쌍에 주어진 액션을 실행
+* **reduce** : 모든 (키, 값) 쌍을 제공된 리듀스 함수를 이용해 결과로 합친다.
+* **search** : 널이 아닌 값을 반활할 때까지 각 (키, 값) 쌍에 함수를 적용
+
+<br>
+
+키에 함수 받기, 값, Map.Entry, (키, 값) 인수를 이용한 네 가지 연산
+
+* **키, 값으로 연산** (forEach, reduce, search)
+* **키로 연산** (forEachKey, reduceKeys, searchKeys)
+* **값으로 연산** (forEachValue, reduceValues, searchValues)
+* **Map.Entry 객체로 연산** (forEachEntry, reduceEntries, searchEntries)
+
+<br>
+
+이들 연산에 제공한 함수는 계산이 진행되는 동안 바꿀 수 있는 객체, 값, 순서 등에 의존하지 않아야 한다.
+
+이들 연산에 병렬성 기준값을 지정해야 한다.
+
+<br>
+
+**예시) reduceValues 메서드를 이용해 맵의 최댓값을 찾기**
+
+```java
+ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
+long parallelismThreshold = 1;
+Optional<Long> maxValue =
+  Optional.ofNullable(map.reduceValues(parallelismThreshold, Long::max));
+```
+
+* int, long, double 등의 기본값에는 전용 each reduce 연산이 제공되므로 reduceValuesToInt, reduceKeysToLong 등을 이용하면 **박싱 작업을 할 필요가 없고** 효율적으로 작업을 처리할 수 있다.
+
+<br>
+
+## 8.4.2. 계수
+
+ConcurrentHashMap 클래스는 맵의 매핑 개수를 반환하는 mappingCount 메서드를 제공한다.
+
+* size 메서드 대신 mappingCount 메서드를 사용하는 것이 좋다. 그래야 매핑의 개수가 int의 범위를 넘어서는 이후의 상황을 대처할 수 있다.
+
+<br>
+
+## 8.4.3. 집합뷰
+
+ConcurrentHashMap 클래스는 ConcurrentHashMap을 집합 뷰로 반환하는 **keySet** 이라는 새 메서드를 제공한다. **맵을 바꾸면 집합도 바뀌고 반대로 집합을 바꾸면 맵도 영향을 받는다.**
+
+**newKeySet** 이라는 새 메서드를 이용해 ConcurrentHashMap으로 **유지되는 집합을 만들 수도 있다.**
+
+<br>
+
+# 8.5. 마치며
+
+* 자바 9는 원소를 포함하며 바꿀 수 없는 리스트, 집합, 맵을 쉽게 만들 수 있도록 **Lis.of, Set.of, Map.of, Map.ofEntries** 등의 컬렉션 팩토리를 지원한다.
+* 이들 컬렉션 팩토리가 반환한 객체는 만들어진 다음 **바꿀 수 없다.**
+* List 인터페이스는 **removeIf, replaceAll, sort** 세 가지 디폴트 메서드를 지원한다.
+* Set 인터페이스는 **removeIf** 디폴트 메서드를 지원한다.
+* Map 인터페이스는 **자주 사용하는 패턴과 버그를 방지할 수 있도록 다양한 디폴트 메서드를 지원한다.**
+* **ConcurrentHashMap은** Map에서 상속받은 새 디폴트 메서드를 지원함과 동시에 스레드 안전성도 제공한다.

@@ -3,6 +3,7 @@ package chapter08;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Map.entry;
 
@@ -51,7 +52,38 @@ public class Main {
 //      e.printStackTrace();
 //    }
 
-    String friend = "Raphael";
+//    String friend = "Raphael";
+
+//    Map<String, String> family = Map.ofEntries(
+//        entry("Teo", "Star Wars"), entry("Cristina", "James Bond"));
+//    Map<String, String> friends = Map.ofEntries(
+//        entry("Raphael", "Star Wars"));
+//    Map<String, String> everyone = new HashMap<>(family);
+//    everyone.putAll(friends);
+//    System.out.println(everyone);
+
+//    Map<String, String> family = Map.ofEntries(
+//        entry("Teo", "Star Wars"), entry("Cristina", "James Bond"));
+//    Map<String, String> friends = Map.ofEntries(
+//        entry("Raphael", "Star Wars"), entry("Cristina", "Matrix"));
+//    Map<String, String> everyone = new HashMap<>(family);
+//    friends.forEach((k, v) ->
+//        everyone.merge(k, v, (movie1, movie2) -> movie1 + " & " + movie2));
+//    System.out.println(everyone);
+
+//    Map<String, Long> moviesToCount = new HashMap<>();
+//    String movieName = "JamesBond";
+//    Long count = moviesToCount.get(movieName);
+//    if (count == null) {
+//      moviesToCount.put(movieName, 1L);
+//    } else {
+//      moviesToCount.put(movieName, count + 1);
+//    }
+//    moviesToCount.merge(movieName, 1L, (key, count) -> count + 1L);
+    ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
+    long parallelismThreshold = 1;
+    Optional<Long> maxValue =
+        Optional.ofNullable(map.reduceValues(parallelismThreshold, Long::max));
   }
 
 }
