@@ -48,4 +48,28 @@
    };
    ```
 
-3. 익명 클래스를 람다 표현식으로 바꾸면 콘텍스트 오버로딩에 따른 모호함이 초래될 수 있다. 익명 클래스는 인스턴스화할 때 명시적으로 형식이 정해지는 반면 람다의 형식은 콘텍스트에 따라 달라진다.
+3. 익명 클래스를 람다 표현식으로 바꾸면 콘텍스트 오버로딩에 따른 모호함이 초래될 수 있다. 익명 클래스는 인스턴스화할 때 명시적으로 형식이 정해지는 반면 **람다의 형식은 콘텍스트에 따라 달라진다.**
+
+   * **예시) Task 라는 Runnable과 같은 시그니처를 갖는 함수형 인터페이스를 선언**
+
+     ```java
+     interface Task {
+       public void execute();
+     }
+     
+     public static void doSomething(Runnable r) { r.run() }
+     public static void doSomething(Task a) { r.execute(); }
+     ```
+
+     Task를 구현하는 익명 클래스를 전달할 수 있다.
+
+     ```java
+     doSomething(new Task() {
+       public void execute() {
+         System.out.print
+       }
+     })
+     ```
+
+     
+
