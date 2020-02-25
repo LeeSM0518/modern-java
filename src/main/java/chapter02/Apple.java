@@ -3,7 +3,7 @@ package chapter02;
 public class Apple {
 
   private Color color;
-  private int weight;
+  static private int weight;
 
   public Apple(Color color, int weight) {
     this.color = color;
@@ -22,8 +22,8 @@ public class Apple {
     return weight;
   }
 
-  public void setWeight(int weight) {
-    this.weight = weight;
+  static public void setWeight(int w) {
+    weight = w;
   }
 
   @Override

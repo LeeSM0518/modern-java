@@ -146,6 +146,7 @@ public class Main {
     System.out.println(vegetarianDishesByType);
 
     System.out.println();
+    System.out.println("test");
     Map<Boolean, Dish> mostCaloricPartitionedByVegetarian =
         menu.stream().collect(
             partitioningBy(Dish::isVegetarian,
@@ -171,6 +172,8 @@ public class Main {
       if (duration < fastest) fastest = duration;
     }
     System.out.println("Fastest execution done in " + fastest + "msecs");
+
+
 
 
   }

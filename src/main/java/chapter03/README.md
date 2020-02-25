@@ -105,8 +105,25 @@
 2장에서 구현했던 필터 메서드에도 람다를 활용할 수 있었다.
 
 ```java
-List<Apple> greenApples = 
-  filter(inventory, (Apple a) -> GREEN.equals(a.getColor()));
+public class Main {
+
+  public static void main(String[] args) {
+    List<Apple> inventory = List.of(new Apple(GREEN, 100), new Apple(RED, 150));
+    List<Apple> greenApples = filter(inventory, (Apple a) -> GREEN.equals(a.getColor()));
+    System.out.println(greenApples);
+  }
+
+  public static <T> List<T> filter(List<T> list, Predicate<T> p) {
+    List<T> result = new ArrayList<>();
+    for(T e : list) {
+      if (p.test(e)) {
+        result.add(e);
+      }
+    }
+    return result;
+  }
+
+}
 ```
 
 >  **함수형 인터페이스** 라는 문맥에서 람다 표현식을 사용할 수 있다. 위 예제에서는 **함수형 인터페이스 Predicate\<T>를** 기대하는 filter 메서드의 두 번째 인수로 람다 표현식을 전달했다.
